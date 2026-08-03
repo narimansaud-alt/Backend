@@ -1,0 +1,63 @@
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass
+class ApplicationError(Exception):
+    code: str
+    status: int
+
+    @property
+    def message(self) -> str:
+        return ""
+
+    @property
+    def detail(self) -> dict[str, Any] | list[dict[str, Any]]:
+        return {}
+
+
+@dataclass(kw_only=True)
+class NotHandlerRegisterError(ApplicationError):
+    classes: list[str]
+    code: str = "INTERNAL_EXCEPTION"
+    status: int = 503
+
+    @property
+    def message(self) -> str:
+        return "No handler/handlers registered"
+
+    @property
+    def detail(self) -> dict[str, Any]:
+        return {"classes": self.classes}
+
+
+@dataclass(kw_only=True)
+class FieldRequiredError(ApplicationError):
+    code: str = "INTERNAL_EXCEPTION"
+    status: int = 500
+
+    @property
+    def message(self) -> str:
+        return "Field required"
+
+    @property
+    def detail(self) -> dict[str, Any]:
+        return {}
+
+
+@dataclass(kw_only=True)
+class ValidationError(ApplicationError):
+    code: str = "VALIDATION_EXCEPTION"
+    status: int = 422
+
+    @property
+    def message(self) -> str:
+        return "Validation exception"
+
+    @property
+    def detail(self) -> list[dict[str, Any]]:
+        return [{
+            "loc": ["string", 0],
+            "msg": "string",
+            "type": "string"
+        }]
