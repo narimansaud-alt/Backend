@@ -41,18 +41,22 @@ docker network create app-network
 # 3. Поднять инфраструктуру и приложение
 docker compose up --build
 
-#Для прода
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -f docker-compose.monitoring.yml up -d --build
+# Для production на Proxmox VM за Nginx Proxy Manager LXC
+docker compose --profile api --profile storage --profile kafka -f docker-compose.yaml -f docker-compose.proxmox.yml up -d --build
+docker compose --profile migrations -f docker-compose.yaml -f docker-compose.proxmox.yml run --rm migrations
 ```
 
 После запуска:
 
 - API: <http://localhost:8000>
+- Frontend: <http://localhost:3000>
 - Swagger UI: <http://localhost:8000/docs>
 - OpenAPI JSON: <http://localhost:8000/api/v1/openapi.json> (доступен только в `local`/`testing` окружениях)
 - Health-check: `GET /health`
 - Метрики Prometheus: `GET /metrics`
 - MinIO Console: <http://localhost:9001>
+
+Подробная схема с двумя доменами (`app.example.com` и `api.example.com`), настройка Nginx Proxy Manager и контракт `refresh_token` описаны в [docs/deploy-proxmox-npm.md](docs/deploy-proxmox-npm.md).
 
 ### Линтинг и типы
 
