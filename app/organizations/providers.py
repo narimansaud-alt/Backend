@@ -8,6 +8,8 @@ from app.organizations.commands import (
     CreateOrganizationHandler,
     InviteMemberCommand,
     InviteMemberHandler,
+    RegisterInvitationCommand,
+    RegisterInvitationHandler,
     RemoveMemberCommand,
     RemoveMemberHandler,
     UpdateMemberCommand,
@@ -31,6 +33,7 @@ class OrganizationsProvider(Provider):
     scope_service = provide(OrganizationScopeService)
     create_organization = provide(CreateOrganizationHandler)
     invite_member = provide(InviteMemberHandler)
+    register_invitation = provide(RegisterInvitationHandler)
     accept_invitation = provide(AcceptInvitationHandler)
     update_member = provide(UpdateMemberHandler)
     remove_member = provide(RemoveMemberHandler)
@@ -41,6 +44,7 @@ class OrganizationsProvider(Provider):
     def commands(self, registry: CommandRegistry) -> CommandRegistry:
         registry.register_command(CreateOrganizationCommand, CreateOrganizationHandler)
         registry.register_command(InviteMemberCommand, InviteMemberHandler)
+        registry.register_command(RegisterInvitationCommand, RegisterInvitationHandler)
         registry.register_command(AcceptInvitationCommand, AcceptInvitationHandler)
         registry.register_command(UpdateMemberCommand, UpdateMemberHandler)
         registry.register_command(RemoveMemberCommand, RemoveMemberHandler)

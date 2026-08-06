@@ -41,3 +41,13 @@ class OwnerMutationError(ApplicationError):
     @property
     def message(self) -> str:
         return "The organization owner cannot be changed through the member endpoint"
+
+
+@dataclass(kw_only=True)
+class MemberAlreadyExistsError(ApplicationError):
+    code: str = "ORGANIZATION_MEMBER_EXISTS"
+    status: int = 409
+
+    @property
+    def message(self) -> str:
+        return "The user is already an active member of this organization"

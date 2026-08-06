@@ -6,6 +6,7 @@ def test_marketplace_analytics_openapi_contract() -> None:
     required = {
         "/ready",
         "/api/v1/organizations",
+        "/api/v1/organizations/invitations/register",
         "/api/v1/cabinets",
         "/api/v1/analytics/overview",
         "/api/v1/analytics/timeseries",
@@ -18,4 +19,6 @@ def test_marketplace_analytics_openapi_contract() -> None:
     }
     assert required <= set(schema["paths"])
     assert "/api/v1/users/register" not in schema["paths"]
+    invitation_registration = schema["paths"]["/api/v1/organizations/invitations/register"]["post"]
+    assert "security" not in invitation_registration
     assert "AnalyticsOverviewResponse" in schema["components"]["schemas"]

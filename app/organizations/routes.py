@@ -12,6 +12,7 @@ from app.organizations.commands import (
     AcceptInvitationCommand,
     CreateOrganizationCommand,
     InviteMemberCommand,
+    RegisterInvitationCommand,
     RemoveMemberCommand,
     UpdateMemberCommand,
 )
@@ -19,6 +20,8 @@ from app.organizations.queries import ListMembersQuery, ListOrganizationsQuery
 from app.organizations.schemas import (
     InvitationAcceptRequest,
     InvitationCreateRequest,
+    InvitationRegisterRequest,
+    InvitationRegistrationResponse,
     InvitationResponse,
     MemberResponse,
     MemberUpdateRequest,
@@ -86,6 +89,14 @@ async def accept_invitation(
     user: AuthCurrentUserJWTData,
 ) -> MemberResponse:
     return await mediator.handle_command(AcceptInvitationCommand(user=user, token=request.token))
+
+
+@router.post("/invitations/register", status_code=status.HTTP_201_CREATED)
+async def register_invited_user(
+    request: InvitationRegisterRequest,
+    mediator: FromDishka[BaseMediator],
+) -> InvitationRegistrationResponse:
+    return await mediator.handle_command(RegisterInvitationCommand(**request.model_dump()))
 
 
 @router.patch("/{organization_id}/members/{member_id}")

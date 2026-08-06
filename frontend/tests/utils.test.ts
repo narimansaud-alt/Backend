@@ -41,6 +41,7 @@ describe("API error mapping", () => {
   });
 
   it("обновляет токен при backend-ответе 403 INVALID_TOKEN", async () => {
+    vi.stubGlobal("window", { location: { pathname: "/private", search: "", assign: vi.fn() } });
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "INVALID_TOKEN", message: "Invalid token" } }), { status: 403 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "fresh-access-token" }), { status: 200 }))

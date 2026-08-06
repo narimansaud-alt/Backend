@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.auth.schemas.base import PasswordMixinSchema
 from app.organizations.models import OrganizationRole
 
 
@@ -25,6 +26,9 @@ class MemberResponse(BaseModel):
     user_id: int
     role: OrganizationRole
     is_active: bool
+    username: str | None = None
+    email: EmailStr | None = None
+    cabinet_ids: list[UUID] = Field(default_factory=list)
 
 
 class InvitationCreateRequest(BaseModel):
@@ -44,6 +48,19 @@ class InvitationResponse(BaseModel):
 
 class InvitationAcceptRequest(BaseModel):
     token: str = Field(min_length=32, max_length=256)
+
+
+class InvitationRegisterRequest(PasswordMixinSchema):
+    token: str = Field(min_length=32, max_length=256)
+    username: str = Field(min_length=3, max_length=64)
+
+
+class InvitationRegistrationResponse(BaseModel):
+    user_id: int
+    username: str
+    email: EmailStr
+    organization_id: UUID
+    role: OrganizationRole
 
 
 class MemberUpdateRequest(BaseModel):

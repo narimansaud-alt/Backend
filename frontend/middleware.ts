@@ -26,7 +26,16 @@ function signIn(request: NextRequest) {
   return NextResponse.redirect(new URL(`/signin?next=${encodeURIComponent(next)}`, request.url));
 }
 
-async function refreshSession(refreshToken: string) {
+function replaceRequestCookie(header: string | null, name: string, value: string) {
+  const cookies = (header ?? "")
+    .split(";")
+    .map((item) => item.trim())
+    .filter((item) => item && !item.startsWith(`${name}=`));
+  cookies.push(`${name}=${value}`);
+  return cookies.join("; ");
+}
+
+async function refreshSession(request: NextRequest, refreshToken: string) {
   const apiUrl = process.env.API_URL?.replace(/\/$/, "");
   if (!apiUrl) return null;
 
@@ -41,7 +50,11 @@ async function refreshSession(refreshToken: string) {
   const rotatedRefreshToken = cookieValue(backendResponse.headers.get("set-cookie"), "refresh_token");
   if (!payload.access_token || !rotatedRefreshToken) return null;
 
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  let requestCookie = replaceRequestCookie(requestHeaders.get("cookie"), "access_token", payload.access_token);
+  requestCookie = replaceRequestCookie(requestCookie, "refresh_token", rotatedRefreshToken);
+  requestHeaders.set("cookie", requestCookie);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   const secure = process.env.NODE_ENV === "production";
   response.cookies.set("access_token", payload.access_token, { httpOnly: true, secure, sameSite: "strict", path: "/", maxAge: 900 });
   response.cookies.set("refresh_token", rotatedRefreshToken, { httpOnly: true, secure, sameSite: "strict", path: "/" });
@@ -57,7 +70,7 @@ export async function middleware(request: NextRequest) {
   if (!refreshToken) return signIn(request);
 
   try {
-    return (await refreshSession(refreshToken)) ?? signIn(request);
+    return (await refreshSession(request, refreshToken)) ?? signIn(request);
   } catch {
     return signIn(request);
   }

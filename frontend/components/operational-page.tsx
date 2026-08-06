@@ -5,10 +5,13 @@ import { DataTable } from "./ui/data-table";
 import { RouteAction } from "./ui/route-action";
 import { PageHeader } from "./ui/page-header";
 import type { OperationalData } from "@/utils/operational-pages";
+import { TeamManagement } from "./management/team-management";
+import { CabinetManagement } from "./management/cabinet-management";
 
 export function OperationalPage({ data }: { data: OperationalData }) {
   const management = data.path.startsWith("/management/");
   const formatValue = (value: string, format: "money" | "percent" | "number" | "text") => format === "text" ? value : formatMetric(value, format === "money" ? "rub" : format === "percent" ? "percent" : "count");
+  if (data.path === "/management/team" || data.path === "/management/cabinets") return <div className="mx-auto max-w-[1680px]"><PageHeader title={data.title} description={data.description} actions={false} />{data.path === "/management/team" ? <TeamManagement /> : <CabinetManagement />}</div>;
   return <div className="mx-auto max-w-[1680px]">
     <PageHeader title={data.title} description={data.description} updated={data.updated_at ? formatDateTime(data.updated_at) : undefined} actions={!management} />
     {!management && <FilterBar />}

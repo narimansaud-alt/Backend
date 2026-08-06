@@ -4,14 +4,20 @@ from dataclasses import dataclass
 from datetime import timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.exceptions import DuplicateUserError, NotFoundRoleError, PasswordMismatchError
+from app.auth.models.role_permission import RolesEnum
 from app.auth.models.user import User
+from app.auth.repositories.role import RoleRepository
+from app.auth.repositories.user import UserRepository
+from app.auth.services.hash import HashService
 from app.core.commands import BaseCommand, BaseCommandHandler
 from app.core.services.auth.dto import UserJWTData
 from app.core.utils import now_utc
 from app.organizations.exceptions import (
+    MemberAlreadyExistsError,
     OrganizationForbiddenError,
     OrganizationNotFoundError,
     OwnerMutationError,
@@ -25,7 +31,12 @@ from app.organizations.models import (
     OrganizationRole,
 )
 from app.organizations.repositories import MemberRepository
-from app.organizations.schemas import InvitationResponse, MemberResponse, OrganizationResponse
+from app.organizations.schemas import (
+    InvitationRegistrationResponse,
+    InvitationResponse,
+    MemberResponse,
+    OrganizationResponse,
+)
 from app.organizations.services import OrganizationScopeService
 
 
@@ -73,10 +84,31 @@ class InviteMemberHandler(BaseCommandHandler[InviteMemberCommand, InvitationResp
             raise OrganizationForbiddenError(permission="member:invite") from exc
         if command.role is OrganizationRole.OWNER:
             raise OwnerMutationError
+        normalized_email = command.email.strip().casefold()
+        existing_member = await self.session.scalar(
+            select(OrganizationMember)
+            .join(User, User.id == OrganizationMember.user_id)
+            .where(
+                OrganizationMember.organization_id == command.organization_id,
+                OrganizationMember.is_active.is_(True),
+                User.email == normalized_email,
+            )
+        )
+        if existing_member is not None:
+            raise MemberAlreadyExistsError
+        await self.session.execute(
+            update(OrganizationInvitation)
+            .where(
+                OrganizationInvitation.organization_id == command.organization_id,
+                OrganizationInvitation.email == normalized_email,
+                OrganizationInvitation.status == InvitationStatus.PENDING,
+            )
+            .values(status=InvitationStatus.REVOKED)
+        )
         token = secrets.token_urlsafe(32)
         invitation = OrganizationInvitation(
             organization_id=command.organization_id,
-            email=command.email.lower(),
+            email=normalized_email,
             role=command.role,
             token_hash=hashlib.sha256(token.encode()).hexdigest(),
             invited_by_user_id=int(command.user.id),
@@ -87,6 +119,23 @@ class InviteMemberHandler(BaseCommandHandler[InviteMemberCommand, InvitationResp
         return InvitationResponse.model_validate(invitation, from_attributes=True).model_copy(
             update={"invite_token": token}
         )
+
+
+async def _get_pending_invitation(session: AsyncSession, token: str) -> OrganizationInvitation:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    invitation = await session.scalar(
+        select(OrganizationInvitation).where(
+            OrganizationInvitation.token_hash == token_hash,
+            OrganizationInvitation.status == InvitationStatus.PENDING,
+        )
+    )
+    if invitation is None:
+        raise OrganizationNotFoundError
+    if invitation.expires_at <= now_utc():
+        invitation.status = InvitationStatus.EXPIRED
+        await session.commit()
+        raise OrganizationNotFoundError
+    return invitation
 
 
 @dataclass(frozen=True)
@@ -100,19 +149,7 @@ class AcceptInvitationHandler(BaseCommandHandler[AcceptInvitationCommand, Member
     session: AsyncSession
 
     async def handle(self, command: AcceptInvitationCommand) -> MemberResponse:
-        token_hash = hashlib.sha256(command.token.encode()).hexdigest()
-        invitation = await self.session.scalar(
-            select(OrganizationInvitation).where(
-                OrganizationInvitation.token_hash == token_hash,
-                OrganizationInvitation.status == InvitationStatus.PENDING,
-            )
-        )
-        if invitation is None:
-            raise OrganizationNotFoundError
-        if invitation.expires_at <= now_utc():
-            invitation.status = InvitationStatus.EXPIRED
-            await self.session.commit()
-            raise OrganizationNotFoundError
+        invitation = await _get_pending_invitation(self.session, command.token)
         user = await self.session.get(User, int(command.user.id))
         if user is None or user.email.casefold() != invitation.email.casefold():
             raise OrganizationNotFoundError
@@ -134,6 +171,66 @@ class AcceptInvitationHandler(BaseCommandHandler[AcceptInvitationCommand, Member
         invitation.status = InvitationStatus.ACCEPTED
         await self.session.commit()
         return MemberResponse.model_validate(member)
+
+
+@dataclass(frozen=True)
+class RegisterInvitationCommand(BaseCommand):
+    token: str
+    username: str
+    password: str
+    password_repeat: str
+
+
+@dataclass(frozen=True)
+class RegisterInvitationHandler(BaseCommandHandler[RegisterInvitationCommand, InvitationRegistrationResponse]):
+    session: AsyncSession
+    user_repository: UserRepository
+    role_repository: RoleRepository
+    hash_service: HashService
+
+    async def handle(self, command: RegisterInvitationCommand) -> InvitationRegistrationResponse:
+        invitation = await _get_pending_invitation(self.session, command.token)
+        existing_email = await self.user_repository.get_by_email(invitation.email)
+        if existing_email is not None:
+            raise DuplicateUserError(field="email", value=invitation.email)
+        normalized_username = command.username.strip()
+        existing_username = await self.user_repository.get_by_username(normalized_username)
+        if existing_username is not None:
+            raise DuplicateUserError(field="username", value=normalized_username)
+        if command.password != command.password_repeat:
+            raise PasswordMismatchError
+
+        system_role = await self.role_repository.get_with_permission_by_name(RolesEnum.STANDARD_USER.value.name)
+        if system_role is None:
+            raise NotFoundRoleError(name=RolesEnum.STANDARD_USER.value.name)
+
+        user = User.create(
+            email=invitation.email,
+            username=normalized_username,
+            password_hash=self.hash_service.hash_password(command.password),
+            roles={system_role},
+            is_verified=True,
+        )
+        await self.user_repository.create(user)
+        await self.session.flush()
+        member = OrganizationMember(
+            organization_id=invitation.organization_id,
+            user_id=user.id,
+            role=invitation.role,
+        )
+        self.session.add(member)
+        invitation.status = InvitationStatus.ACCEPTED
+        # Possession of the one-time invitation token is the email verification step.
+        user.pull_events()
+        await self.session.commit()
+        await self.user_repository.invalidate_cache()
+        return InvitationRegistrationResponse(
+            user_id=user.id,
+            username=user.username,
+            email=user.email,
+            organization_id=invitation.organization_id,
+            role=OrganizationRole(invitation.role),
+        )
 
 
 @dataclass(frozen=True)
