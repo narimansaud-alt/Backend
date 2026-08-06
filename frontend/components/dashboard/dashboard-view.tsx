@@ -1,0 +1,46 @@
+"use client";
+
+import Link from "next/link";
+import { AlertTriangle, ArrowRight, ChevronRight, MoreHorizontal, Settings2 } from "lucide-react";
+import type { DashboardViewModel } from "@/utils/api/view-models";
+import { formatDateTime, formatMoney, formatPercent } from "@/utils/formatters";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FilterBar } from "./filter-bar";
+import { KpiCard } from "./kpi-card";
+import { PageHeader } from "@/components/ui/page-header";
+
+const marketplaceLabel = { wildberries: "Wildberries", ozon: "Ozon", yandex_market: "Яндекс Маркет" } as const;
+const marketplaceColor = { wildberries: "#9f3cff", ozon: "#1976d2", yandex_market: "#f0b629" } as const;
+
+export function DashboardView({ data }: { data: DashboardViewModel }) {
+  const router = useRouter();
+  const search = useSearchParams();
+  const maxSales = Math.max(1, ...data.timeseries.map((point) => Number(point.sales)));
+  const warnings = data.warnings ?? [];
+  const expenseStructure = data.expense_structure ?? [];
+  const products = data.product_rows ?? [];
+  const waterfall = data.waterfall ?? [];
+  const granularity = search.get("granularity") ?? "day";
+  const setGranularity = (value: string) => {
+    const params = new URLSearchParams(search.toString());
+    params.set("granularity", value);
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false });
+  };
+
+  return <div className="mx-auto max-w-[1680px]">
+    <PageHeader title="Оцифровка" description="Ключевые показатели бизнеса по подключённым маркетплейсам." updated={data.updated_at ? formatDateTime(data.updated_at) : undefined} />
+    <FilterBar />
+    {warnings.map((warning) => <div key={warning.code} className="mt-3 flex items-start gap-3 rounded-md border border-[#ead8bd] bg-[#fffaf2] px-3.5 py-3 text-xs text-[#6f542e]" role="status"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#b8782d]" /><div className="flex-1"><span>{warning.message}</span>{warning.action_href?.startsWith("/") && !warning.action_href.startsWith("//") && <Link href={warning.action_href} className="ml-2 inline-flex items-center gap-1 font-semibold hover:underline">{warning.action_label ?? "Проверить"}<ArrowRight size={14} /></Link>}</div></div>)}
+    <div className="mt-4 flex items-center justify-between"><h2 className="section-title">Ключевые показатели</h2><button className="text-button" aria-label="Настроить видимость показателей"><Settings2 size={14} />Настроить</button></div>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">{data.metrics.map((metric) => <KpiCard key={metric.id} metric={metric} />)}</div>
+    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(310px,.75fr)]">
+      <section className="panel min-w-0 p-4" aria-labelledby="trend-title"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 id="trend-title" className="section-title">Динамика продаж и прибыли</h2><p className="mt-1 text-[11px] text-[#858b84]">Данные и расчёты предоставлены backend.</p></div><div className="segmented" role="group" aria-label="Группировка временного ряда">{[["day", "День"], ["week", "Неделя"], ["month", "Месяц"]].map(([value, label]) => <button key={value} onClick={() => setGranularity(value)} className={granularity === value ? "segmented-active" : ""} aria-pressed={granularity === value}>{label}</button>)}</div></div><div className="mt-5 flex h-[230px] items-end gap-1.5 border-b border-[#dfe2dc] px-1" role="img" aria-label="График продаж и чистой прибыли">{data.timeseries.map((point, index) => <div key={`${point.date}-${index}`} className="group relative flex h-full flex-1 items-end justify-center gap-[2px]"><span className="chart-tooltip">{point.date}<br />Продажи {formatMoney(point.sales)}<br />Прибыль {formatMoney(point.profit)}<br />Заказы {point.orders}</span><span className="w-[55%] min-w-[5px] rounded-t-[2px] bg-[#88ad9e]" style={{ height: `${Math.max(8, Number(point.sales) / maxSales * 88)}%` }} /><span className="w-[28%] min-w-[3px] rounded-t-[2px] bg-[#d99a55]" style={{ height: `${Math.max(4, Number(point.profit) / maxSales * 88)}%` }} />{index % Math.max(1, Math.ceil(data.timeseries.length / 6)) === 0 && <span className="absolute -bottom-5 whitespace-nowrap text-[9px] text-[#929790]">{point.date}</span>}</div>)}</div><div className="mt-7 flex items-center gap-5 text-[10px] text-[#747a73]"><span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-[#88ad9e]" />Продажи</span><span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-[#d99a55]" />Чистая прибыль</span></div></section>
+      <section className="panel p-4" aria-labelledby="market-title"><h2 id="market-title" className="section-title">Вклад площадок</h2><p className="mt-1 text-[11px] text-[#858b84]">Доля в продажах и чистая прибыль.</p><div className="mt-5 flex h-3 overflow-hidden rounded-sm" aria-hidden="true">{data.marketplaces.map((item) => <span key={item.marketplace} style={{ width: `${item.share}%`, background: marketplaceColor[item.marketplace] }} />)}</div><div className="mt-5 space-y-4">{data.marketplaces.map((item) => <div key={item.marketplace} className="grid grid-cols-[1fr_auto] gap-2"><div className="flex min-w-0 items-center gap-2"><span className="size-2 rounded-full" style={{ background: marketplaceColor[item.marketplace] }} /><span className="truncate text-xs font-medium">{marketplaceLabel[item.marketplace]}</span></div><span className="text-xs font-semibold tabular-nums">{formatMoney(item.sales)}</span><span className="pl-4 text-[10px] text-[#929790]">{formatPercent(item.share)} продаж</span><span className="text-[10px] tabular-nums text-[#34745f]">{formatMoney(item.profit)}</span></div>)}</div></section>
+    </div>
+    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <section className="panel p-4" aria-labelledby="waterfall-title"><h2 id="waterfall-title" className="section-title">Из продаж в чистую прибыль</h2><p className="mt-1 text-[11px] text-[#858b84]">Финансовый мост за выбранный период.</p><div className="mt-5 space-y-2.5">{waterfall.map((item) => <div key={item.label} className="grid grid-cols-[140px_1fr_110px] items-center gap-3 text-[11px]"><span className="truncate text-[#656b64]">{item.label}</span><span className="h-4 bg-[#eef0ec]"><span className={`block h-full ${item.kind === "result" ? "bg-[#4d7c69]" : item.kind === "income" ? "bg-[#88ad9e]" : "bg-[#d8a46b]"}`} style={{ width: `${Math.min(100, Math.max(0, item.share))}%` }} /></span><span className="text-right font-medium tabular-nums">{formatMoney(item.value)}</span></div>)}</div></section>
+      <section className="panel p-4" aria-labelledby="expenses-title"><h2 id="expenses-title" className="section-title">Структура расходов</h2><p className="mt-1 text-[11px] text-[#858b84]">Категории и доли из ответа backend.</p><div className="mt-5 flex h-7 overflow-hidden rounded-sm">{expenseStructure.map((item) => <span key={item.label} style={{ width: `${item.share}%`, background: item.color ?? "#c8cec8" }} title={`${item.label}: ${formatPercent(item.share)}`} />)}</div><div className="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">{expenseStructure.map((item) => <div key={item.label} className="flex items-center gap-2 text-[11px]"><span className="size-2 rounded-sm" style={{ background: item.color ?? "#c8cec8" }} /><span className="flex-1 text-[#656b64]">{item.label}</span><span className="font-medium tabular-nums">{formatPercent(item.share)}</span></div>)}</div></section>
+    </div>
+    <section className="panel mt-4 overflow-hidden" aria-labelledby="products-title"><div className="flex items-center justify-between border-b border-[#e5e7e2] p-4"><div><h2 id="products-title" className="section-title">Товары по прибыли</h2><p className="mt-1 text-[11px] text-[#858b84]">Лидеры и позиции, требующие внимания.</p></div><Link href="/products" className="text-button">Все товары <ChevronRight size={14} /></Link></div><div className="table-scroll"><table className="data-table"><thead><tr><th>Товар</th><th>Площадка</th><th className="numeric">Продажи</th><th className="numeric">Заказы</th><th className="numeric">Прибыль</th><th className="numeric">Маржа</th><th className="numeric">Дней запаса</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{products.map((row) => <tr key={row.id}><td className="sticky-cell"><Link href={`/products/${row.id}`} className="block font-medium hover:text-[#34745f]">{row.name}</Link><span className="text-[10px] text-[#929790]">{row.sku} · {row.id}</span></td><td><span className="market-badge">{marketplaceLabel[row.marketplace]}</span></td><td className="numeric">{formatMoney(row.sales)}</td><td className="numeric">{row.orders}</td><td className="numeric font-medium text-[#266b54]">{formatMoney(row.profit)}</td><td className="numeric">{formatPercent(row.margin)}</td><td className="numeric">{row.stock_days}</td><td><button className="icon-button" aria-label={`Действия: ${row.name}`}><MoreHorizontal size={16} /></button></td></tr>)}</tbody></table>{products.length === 0 && <div className="p-8 text-center text-xs text-[#858b84]">Backend не вернул товары за выбранный период.</div>}</div></section>
+  </div>;
+}
