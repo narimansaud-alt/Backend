@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { DashboardLoader } from "@/components/dashboard/dashboard-loader";
 import { DataError } from "@/components/ui/data-state";
 import { OperationalPage } from "@/components/operational-page";
 import { ProductDetail } from "@/components/product-detail";
@@ -24,7 +25,7 @@ export default async function WorkspacePage({ params, searchParams }: Props) {
   const { slug } = await params;
   const query = queryString(await searchParams);
   const path = `/${slug.join("/")}`;
-  if (path === "/dashboard") { const result = await getOverview(query); if (result.error) return renderError(result.error, path); return <DashboardView data={result.data!} />; }
+  if (path === "/dashboard") { const result = await getOverview(query); return <DashboardLoader initialData={result.data} />; }
   if (slug[0] === "products" && slug.length === 2 && !["unit-economics", "stocks"].includes(slug[1])) { const result = await getProductDetail(slug[1]); if (result.error) return renderError(result.error, path); return <ProductDetail product={result.data!} />; }
   const result = await getOperationalPage(path, query);
   if ("notFound" in result) return notFound();

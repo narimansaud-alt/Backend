@@ -68,7 +68,8 @@ export function AppShell({ children, initialSession = {} }: { children: React.Re
     document.addEventListener("keydown", onKeyDown); document.addEventListener("mousedown", onPointerDown);
     return () => { document.removeEventListener("keydown", onKeyDown); document.removeEventListener("mousedown", onPointerDown); };
   }, []);
-  const role = session.role ?? "viewer";
+  const ownerOrganization = organizations.find((organization) => organization.owner_user_id === session.user?.id);
+  const role = session.role ?? (ownerOrganization ? "owner" : "viewer");
   const visibleSections = useMemo(() => navigationSections.map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || can(role, item.permission)) })).filter((section) => section.items.length), [role]);
   const filterHref = (key: "organization_ids" | "cabinet_ids", value?: string) => {
     const params = new URLSearchParams(searchParams.toString());
