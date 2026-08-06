@@ -11,8 +11,6 @@ export function ClientErrorReporter() {
     let reporting = false;
     const report = (value: unknown) => {
       if (reporting) return;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!baseUrl) return;
       const payload = sanitizeError(value);
       const key = `${payload.message}:${window.location.pathname}`;
       const last = sent.get(key) ?? 0;

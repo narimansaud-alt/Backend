@@ -9,19 +9,19 @@ pnpm install
 pnpm dev
 ```
 
-Откройте `http://localhost:3000` — главная перенаправит в `/dashboard`. Для отображения данных обязательны `API_URL` (server-side запросы) и `NEXT_PUBLIC_API_URL` (browser auth, export и observability). Без backend приложение показывает понятное состояние конфигурационной ошибки и не подставляет локальные данные.
+Откройте `http://localhost:3000` — главная перенаправит в `/dashboard`. Для отображения данных нужен `API_URL`; браузерные запросы проходят через same-origin proxy Next.js, поэтому публичный API URL и CORS не ломают интерфейс.
 
 ## Настройка backend
 
 Скопируйте `.env.example` в `.env.local` и задайте:
 
 ```dotenv
-API_URL=https://analytics-api.example.internal
-NEXT_PUBLIC_API_URL=https://analytics-api.example.internal
+API_URL=https://api.windoweropu.store
+NEXT_PUBLIC_API_URL=https://api.windoweropu.store
 NEXT_PUBLIC_RELEASE_ID=release-id
 ```
 
-`API_URL` используется Server Components, `NEXT_PUBLIC_API_URL` — для клиентской диагностики. Backend остаётся единственным источником бизнес-метрик и повторно проверяет сессию, роль и cabinet scope.
+`API_URL` используется Server Components, auth proxy и browser API proxy. `NEXT_PUBLIC_API_URL` оставлен для обратной совместимости сборки. Backend остаётся единственным источником бизнес-метрик и повторно проверяет сессию, роль и cabinet scope.
 
 ## Проверка
 

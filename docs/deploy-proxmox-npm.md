@@ -24,7 +24,7 @@ Set the production values in `.env`:
 ```dotenv
 ENVIRONMENT=production
 DOMAIN=app.example.com
-FRONTEND_PUBLIC_API_URL=https://api.example.com
+ FRONTEND_PUBLIC_API_URL=https://api.windoweropu.store
 BACKEND_CORS_ORIGINS=https://app.example.com
 POSTGRES_SERVER=db
 POSTGRES_PORT=5432
@@ -79,7 +79,7 @@ Set-Cookie: refresh_token=...; Path=/; HttpOnly; Secure; SameSite=Strict
 
 4. When access expires, the browser calls `https://app.example.com/api/auth/refresh`; Next.js forwards the cookie to FastAPI and stores the rotated cookie again.
 
-Do not change the cookie to `SameSite=None`, do not expose it to JavaScript, and do not set a `Domain` attribute. `NEXT_PUBLIC_API_URL` is the public API URL used for browser API requests; the refresh cookie itself stays on the frontend host.
+ Do not change the cookie to `SameSite=None`, do not expose it to JavaScript, and do not set a `Domain` attribute. Browser API requests are proxied through the frontend host, so cookies and API calls stay same-origin. `API_URL` on the frontend container must point to the internal FastAPI service (`http://app:8000`).
 
 ## 4. Smoke checks
 
@@ -93,7 +93,7 @@ curl -I http://127.0.0.1:3000
 From a client outside the VM:
 
 ```bash
-curl -fsS https://api.example.com/health
+ curl -fsS https://api.windoweropu.store/health
 curl -I https://app.example.com
 ```
 

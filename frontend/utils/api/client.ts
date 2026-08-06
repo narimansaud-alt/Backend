@@ -45,7 +45,7 @@ function isAuthenticationResponse(response: Response, payload: unknown) {
 }
 
 function getBaseUrl(override?: string) {
-  const value = override ?? (typeof window === "undefined" ? process.env.API_URL : process.env.NEXT_PUBLIC_API_URL);
+  const value = override ?? (typeof window === "undefined" ? process.env.API_URL : "/api/backend");
   if (!value) throw new ApiError("Не задан URL backend. Подключите API_URL и NEXT_PUBLIC_API_URL.", 503, "API_NOT_CONFIGURED");
   return value.replace(/\/$/, "");
 }

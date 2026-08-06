@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, KeyRound, Loader2, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { ApiError, apiRequest } from "@/utils/api/client";
 import type { CabinetResponse, Marketplace, OrganizationResponse, PageResult } from "@/utils/api/generated";
+import { OrganizationCreate } from "./organization-create";
 
 const marketplaceLabels: Record<Marketplace, string> = { wildberries: "Wildberries", ozon: "Ozon", yandex_market: "Яндекс Маркет" };
 
@@ -27,6 +28,7 @@ export function CabinetManagement() {
   const [pending, setPending] = useState<"create" | "rotate" | string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [organizationsLoaded, setOrganizationsLoaded] = useState(false);
   const rotateCabinet = useMemo(() => cabinets.find((item) => item.id === rotateCabinetId), [cabinets, rotateCabinetId]);
 
   const load = useCallback(async () => {
@@ -35,7 +37,7 @@ export function CabinetManagement() {
         apiRequest<PageResult<OrganizationResponse>>("/api/v1/organizations?page=1&page_size=100"),
         apiRequest<PageResult<CabinetResponse>>("/api/v1/cabinets?page=1&page_size=100"),
       ]);
-      setOrganizations(orgs.items); setCabinets(items.items);
+      setOrganizations(orgs.items); setCabinets(items.items); setOrganizationsLoaded(true);
       setRotateCabinetId((current) => current || items.items[0]?.id || ""); setError("");
     } catch (value) { setError(message(value)); }
   }, []);
@@ -67,6 +69,7 @@ export function CabinetManagement() {
   };
 
   return <div className="space-y-4">
+    {organizationsLoaded && !organizations.length && <OrganizationCreate />}
     <div className="grid gap-4 xl:grid-cols-2">
       <section className="panel p-5"><div className="flex items-center gap-2"><Plus size={18} className="text-[#34745f]" /><h2 className="section-title">Подключить кабинет</h2></div><p className="mt-2 text-xs leading-5 text-[#747a73]">Backend сначала проверяет ключ в API маркетплейса и только затем шифрует его AES-GCM.</p><form className="mt-5 space-y-4" onSubmit={create}><label className="block text-xs font-medium">Организация<select className="form-input mt-1.5 w-full" name="organization_id" required>{organizations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="block text-xs font-medium">Маркетплейс<select className="form-input mt-1.5 w-full" value={marketplace} onChange={(event) => setMarketplace(event.target.value as Marketplace)}>{Object.entries(marketplaceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-medium">Название<input className="form-input mt-1.5 w-full" name="name" required placeholder="Основной кабинет" /></label><label className="block text-xs font-medium">{marketplace === "yandex_market" ? "Business ID" : marketplace === "ozon" ? "Seller ID" : "ID продавца"}<input className="form-input mt-1.5 w-full" name="external_id" required /></label></div><CredentialFields marketplace={marketplace} /><button className="primary-button w-full" disabled={pending === "create" || !organizations.length}>{pending === "create" ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}Проверить и подключить</button></form></section>
       <section className="panel p-5"><div className="flex items-center gap-2"><KeyRound size={18} className="text-[#34745f]" /><h2 className="section-title">Обновить ключ</h2></div><p className="mt-2 text-xs leading-5 text-[#747a73]">Старый секрет не показывается. Новый заменит его только после успешной проверки.</p><form className="mt-5 space-y-4" onSubmit={rotate}><label className="block text-xs font-medium">Кабинет<select className="form-input mt-1.5 w-full" value={rotateCabinetId} onChange={(event) => setRotateCabinetId(event.target.value)} required>{cabinets.map((item) => <option key={item.id} value={item.id}>{marketplaceLabels[item.marketplace]} · {item.name}</option>)}</select></label>{rotateCabinet && <CredentialFields marketplace={rotateCabinet.marketplace} prefix="rotate_" />}<button className="primary-button w-full" disabled={pending === "rotate" || !rotateCabinet}>{pending === "rotate" ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}Проверить и сохранить</button></form></section>

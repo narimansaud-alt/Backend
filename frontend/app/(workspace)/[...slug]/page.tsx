@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> { c
 function queryString(value: Record<string, string | string[] | undefined>) { const params = new URLSearchParams(); for (const [key, item] of Object.entries(value)) { if (typeof item === "string") params.set(key, item); else if (Array.isArray(item)) params.set(key, item.join(",")); } return params.toString(); }
 function renderError(error: { message: string; requestId?: string; status?: number; code?: string }, path: string) {
   if (isAuthenticationError(error)) redirect(`/signin?next=${encodeURIComponent(path)}`);
-  return <DataError message={error.message} requestId={error.requestId} status={error.status} />;
+  return <DataError message={error.message} requestId={error.requestId} status={error.status} code={error.code} />;
 }
 
 export default async function WorkspacePage({ params, searchParams }: Props) {
