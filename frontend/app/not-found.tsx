@@ -1,2 +1,0 @@
-import Link from "next/link";
-export default function NotFound(){return <main className="grid min-h-screen place-items-center bg-[#f4f5f3] p-6"><div className="text-center"><p className="text-5xl font-semibold text-[#c5cac4]">404</p><h1 className="mt-4 text-lg font-semibold">Раздел не найден</h1><p className="mt-2 text-sm text-[#747a73]">Проверьте адрес или вернитесь в рабочую аналитику.</p><Link href="/dashboard" className="primary-button mt-5">В Оцифровку</Link></div></main>}
