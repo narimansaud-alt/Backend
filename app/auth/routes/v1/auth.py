@@ -87,7 +87,7 @@ async def login(
         400: create_response([InvalidTokenError(), ExpiredTokenError()]),
         404: create_response(NotFoundOrInactiveSessionError())
     },
-    dependencies=[Depends(ConfigurableRateLimiter(times=4, seconds=5*60))]
+    dependencies=[Depends(ConfigurableRateLimiter(times=20, seconds=5*60))]
 )
 async def refresh(
     mediator: FromDishka[BaseMediator],
