@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, ChevronDown, Loader2, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { apiRequest } from "@/utils/api/client";
-import { activeFilterCount, parseFilters, serializeFilters, type FilterState } from "@/utils/filters";
+import { activeFilterCount, defaultDateRange, moscowDate, parseFilters, serializeFilters, type FilterState } from "@/utils/filters";
 import type { CabinetResponse, Marketplace, OrganizationResponse, PageResult } from "@/utils/api/generated";
 
 const marketplaceOptions = [
@@ -13,13 +13,7 @@ const marketplaceOptions = [
   ["yandex_market", "Яндекс Маркет"],
 ] as const;
 
-function moscowDate(offsetDays = 0) {
-  const today = new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow" }).format(new Date()));
-  today.setUTCDate(today.getUTCDate() + offsetDays);
-  return today.toISOString().slice(0, 10);
-}
-
-const defaults = (): FilterState => ({ date_from: moscowDate(-29), date_to: moscowDate() });
+const defaults = (): FilterState => defaultDateRange();
 
 export function FilterBar() {
   const pathname = usePathname();

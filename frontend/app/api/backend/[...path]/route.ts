@@ -14,6 +14,10 @@ async function proxy(request: NextRequest, context: RouteContext) {
     const headers = new Headers(request.headers);
     headers.delete("host");
     headers.delete("content-length");
+    if (!headers.has("authorization")) {
+      const accessToken = request.cookies.get("access_token")?.value;
+      if (accessToken) headers.set("authorization", `Bearer ${decodeURIComponent(accessToken)}`);
+    }
 
     const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
     const response = await fetch(target, {

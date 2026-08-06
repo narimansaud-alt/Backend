@@ -14,6 +14,16 @@ export type FilterState = {
   product_group_ids?: string[];
 };
 
+export function moscowDate(offsetDays = 0) {
+  const today = new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow" }).format(new Date()));
+  today.setUTCDate(today.getUTCDate() + offsetDays);
+  return today.toISOString().slice(0, 10);
+}
+
+export function defaultDateRange(): Pick<FilterState, "date_from" | "date_to"> {
+  return { date_from: moscowDate(-29), date_to: moscowDate() };
+}
+
 const arrayKeys = ["organization_ids", "marketplaces", "cabinet_ids", "brand_ids", "category_ids", "product_ids", "product_group_ids"] as const;
 const dateKeys = ["date_from", "date_to", "compare_from", "compare_to"] as const;
 

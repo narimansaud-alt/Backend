@@ -18,7 +18,8 @@ async function getInitialSession(): Promise<SessionViewModel> {
     return {
       user,
       organization_name: organization.name,
-      role: members.items.find((member) => member.user_id === user.id)?.role,
+      role: members.items.find((member) => member.user_id === user.id)?.role
+        ?? (organization.owner_user_id === user.id ? "owner" : undefined),
     };
   } catch {
     return {};

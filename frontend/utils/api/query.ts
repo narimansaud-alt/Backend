@@ -1,7 +1,7 @@
 import { ApiError } from "./client";
 import { serverApiRequest } from "./server";
 import type { OrganizationResponse, PageResult } from "./generated";
-import { backendFiltersQuery, parseFilters, toBackendAnalyticsFilters, type FilterState } from "../filters";
+import { backendFiltersQuery, defaultDateRange, parseFilters, toBackendAnalyticsFilters, type FilterState } from "../filters";
 
 export async function resolveOrganizationId(filters: FilterState) {
   const selected = filters.organization_ids?.[0];
@@ -13,13 +13,13 @@ export async function resolveOrganizationId(filters: FilterState) {
 }
 
 export async function analyticsQuery(queryString: string) {
-  const filters = parseFilters(new URLSearchParams(queryString));
+  const filters = { ...defaultDateRange(), ...parseFilters(new URLSearchParams(queryString)) };
   const organizationId = await resolveOrganizationId(filters);
   return backendFiltersQuery(toBackendAnalyticsFilters(filters, organizationId));
 }
 
 export async function financeQuery(queryString: string) {
-  const filters = parseFilters(new URLSearchParams(queryString));
+  const filters = { ...defaultDateRange(), ...parseFilters(new URLSearchParams(queryString)) };
   const organizationId = await resolveOrganizationId(filters);
   if (!filters.date_from || !filters.date_to) throw new ApiError("Для финансового отчёта нужны даты периода.", 422, "PERIOD_REQUIRED");
   const params = new URLSearchParams({ organization_id: organizationId, date_from: filters.date_from, date_to: filters.date_to });
