@@ -20,6 +20,30 @@ let refreshPromise: Promise<string | null> | null = null;
 export function setAccessToken(token: string | null) { accessToken = token; }
 export function getAccessToken() { return accessToken; }
 
+const authenticationErrorCodes = new Set([
+  "INVALID_TOKEN",
+  "EXPIRED_TOKEN",
+  "NOT_AUTHENTICATED",
+  // Kept for compatibility with the backend's historical error-code typo.
+  "NOT_AUTHNTICATED",
+]);
+
+function errorCode(payload: unknown) {
+  const problem = payload as Partial<ApiErrorResponse>;
+  return problem.error?.code;
+}
+
+export function isAuthenticationError(error: unknown): error is ApiError {
+  return error instanceof ApiError && (
+    authenticationErrorCodes.has(error.code ?? "")
+    || (error.status === 401 && !error.code)
+  );
+}
+
+function isAuthenticationResponse(response: Response, payload: unknown) {
+  return response.status === 401 || authenticationErrorCodes.has(errorCode(payload) ?? "");
+}
+
 function getBaseUrl(override?: string) {
   const value = override ?? (typeof window === "undefined" ? process.env.API_URL : process.env.NEXT_PUBLIC_API_URL);
   if (!value) throw new ApiError("Не задан URL backend. Подключите API_URL и NEXT_PUBLIC_API_URL.", 503, "API_NOT_CONFIGURED");
@@ -52,7 +76,9 @@ function errorFromResponse(response: Response, payload: unknown, requestId?: str
   const problem = payload as Partial<ApiErrorResponse>;
   const code = problem.error?.code;
   const detail = problem.error?.detail;
-  const message = response.status === 403
+  const message = isAuthenticationResponse(response, payload)
+    ? "Сессия истекла. Войдите в систему снова."
+    : response.status === 403
     ? "У вас нет доступа к этим данным. Проверьте роль и выбранную организацию."
     : (problem.error?.message ?? (typeof detail === "string" ? detail : undefined) ?? `Backend вернул ошибку ${response.status}`);
   return new ApiError(message, response.status, code, problem.request_id ?? requestId);
@@ -68,7 +94,8 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
   try {
     const response = await fetch(`${getBaseUrl(baseUrl)}${path}`, { ...init, signal: combinedSignal, credentials: "include", headers: requestHeaders, body: prepared.body, cache: init.cache ?? "no-store" });
     const requestId = response.headers.get("x-request-id") ?? undefined;
-    if (response.status === 401 && !skipAuthRefresh && !path.startsWith("/api/v1/auth/")) {
+    const payload = !response.ok ? await response.json().catch(() => ({})) : undefined;
+    if (!skipAuthRefresh && !path.startsWith("/api/v1/auth/") && isAuthenticationResponse(response, payload)) {
       const refreshed = await refreshAccessToken(baseUrl);
       if (refreshed) return apiRequest<T>(path, { ...options, skipAuthRefresh: true });
       if (typeof window !== "undefined") {
@@ -77,7 +104,6 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
       }
     }
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
       throw errorFromResponse(response, payload, requestId);
     }
     if (response.status === 204) return undefined as T;

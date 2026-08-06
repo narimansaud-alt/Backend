@@ -39,4 +39,16 @@ describe("API error mapping", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ detail: "forbidden" }), { status: 403, headers: { "x-request-id": "req-42", "content-type": "application/json" } })));
     await expect(apiRequest("/private", { baseUrl: "https://api.example" })).rejects.toMatchObject({ status: 403, requestId: "req-42" } satisfies Partial<ApiError>);
   });
+
+  it("обновляет токен при backend-ответе 403 INVALID_TOKEN", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "INVALID_TOKEN", message: "Invalid token" } }), { status: 403 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "fresh-access-token" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiRequest<{ ok: boolean }>("/private", { baseUrl: "https://api.example" })).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ headers: expect.objectContaining({ authorization: "Bearer fresh-access-token" }) });
+  });
 });

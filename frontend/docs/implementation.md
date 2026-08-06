@@ -16,7 +16,8 @@ Frontend использует Next.js App Router и не содержит лок
 2. Next proxy передаёт form-urlencoded запрос в `/api/v1/auth/login`, сохраняет access token и refresh token в HttpOnly cookies.
 3. Browser API-запросы используют access token в памяти и Bearer header.
 4. При 401 вызывается `/api/auth/refresh`, который обращается к `/api/v1/auth/refresh`, ротирует refresh-cookie и повторяет исходный запрос один раз.
-5. Server Components читают access token из cookie и передают его в backend.
+5. `middleware.ts` защищает рабочие маршруты: если access token отсутствует или истёк, он один раз ротирует пару через refresh cookie до рендера страницы.
+6. Server Components читают access token из cookie и передают его в backend.
 
 ## URL-фильтры
 
