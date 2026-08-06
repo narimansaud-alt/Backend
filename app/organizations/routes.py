@@ -11,10 +11,12 @@ from app.core.mediators.base import BaseMediator
 from app.organizations.commands import (
     AcceptInvitationCommand,
     CreateOrganizationCommand,
+    DeleteOrganizationCommand,
     InviteMemberCommand,
     RegisterInvitationCommand,
     RemoveMemberCommand,
     UpdateMemberCommand,
+    UpdateOrganizationCommand,
 )
 from app.organizations.queries import ListMembersQuery, ListOrganizationsQuery
 from app.organizations.schemas import (
@@ -27,6 +29,7 @@ from app.organizations.schemas import (
     MemberUpdateRequest,
     OrganizationCreateRequest,
     OrganizationResponse,
+    OrganizationUpdateRequest,
 )
 
 router = APIRouter(prefix="/organizations", tags=["organizations"], route_class=DishkaRoute)
@@ -49,6 +52,33 @@ async def create_organization(
     user: AuthCurrentUserJWTData,
 ) -> OrganizationResponse:
     return await mediator.handle_command(CreateOrganizationCommand(user=user, name=request.name))
+
+
+@router.patch("/{organization_id}")
+async def update_organization(
+    organization_id: UUID,
+    request: OrganizationUpdateRequest,
+    mediator: FromDishka[BaseMediator],
+    user: AuthCurrentUserJWTData,
+) -> OrganizationResponse:
+    return await mediator.handle_command(
+        UpdateOrganizationCommand(
+            user=user,
+            organization_id=organization_id,
+            name=request.name,
+            is_active=request.is_active,
+        )
+    )
+
+
+@router.delete("/{organization_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_organization(
+    organization_id: UUID,
+    mediator: FromDishka[BaseMediator],
+    user: AuthCurrentUserJWTData,
+) -> Response:
+    await mediator.handle_command(DeleteOrganizationCommand(user=user, organization_id=organization_id))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{organization_id}/members")

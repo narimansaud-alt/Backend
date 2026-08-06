@@ -6,6 +6,8 @@ from app.organizations.commands import (
     AcceptInvitationHandler,
     CreateOrganizationCommand,
     CreateOrganizationHandler,
+    DeleteOrganizationCommand,
+    DeleteOrganizationHandler,
     InviteMemberCommand,
     InviteMemberHandler,
     RegisterInvitationCommand,
@@ -14,6 +16,8 @@ from app.organizations.commands import (
     RemoveMemberHandler,
     UpdateMemberCommand,
     UpdateMemberHandler,
+    UpdateOrganizationCommand,
+    UpdateOrganizationHandler,
 )
 from app.organizations.queries import (
     ListMembersHandler,
@@ -32,6 +36,8 @@ class OrganizationsProvider(Provider):
     member_repository = provide(MemberRepository)
     scope_service = provide(OrganizationScopeService)
     create_organization = provide(CreateOrganizationHandler)
+    update_organization = provide(UpdateOrganizationHandler)
+    delete_organization = provide(DeleteOrganizationHandler)
     invite_member = provide(InviteMemberHandler)
     register_invitation = provide(RegisterInvitationHandler)
     accept_invitation = provide(AcceptInvitationHandler)
@@ -43,6 +49,8 @@ class OrganizationsProvider(Provider):
     @decorate
     def commands(self, registry: CommandRegistry) -> CommandRegistry:
         registry.register_command(CreateOrganizationCommand, CreateOrganizationHandler)
+        registry.register_command(UpdateOrganizationCommand, UpdateOrganizationHandler)
+        registry.register_command(DeleteOrganizationCommand, DeleteOrganizationHandler)
         registry.register_command(InviteMemberCommand, InviteMemberHandler)
         registry.register_command(RegisterInvitationCommand, RegisterInvitationHandler)
         registry.register_command(AcceptInvitationCommand, AcceptInvitationHandler)

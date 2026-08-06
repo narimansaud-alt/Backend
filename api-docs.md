@@ -232,23 +232,30 @@
    - Body: `OrganizationCreateRequest { name }`
    - 201: `OrganizationResponse`
 
-3. `GET /api/v1/organizations/{organization_id}/members`
+3. `PATCH /api/v1/organizations/{organization_id}`
+   - Body: `OrganizationUpdateRequest { name?, is_active? }`
+   - 200: `OrganizationResponse`
+
+4. `DELETE /api/v1/organizations/{organization_id}`
+   - 204: safe organization deactivation; the backend retains data and closes access
+
+5. `GET /api/v1/organizations/{organization_id}/members`
    - Query: `page`, `page_size`
    - 200: `PageResult<MemberResponse>`
 
-4. `POST /api/v1/organizations/{organization_id}/invitations`
+6. `POST /api/v1/organizations/{organization_id}/invitations`
    - Body: `InvitationCreateRequest { email, role, expires_in_hours }`
    - 201: `InvitationResponse`
 
-5. `POST /api/v1/organizations/invitations/accept`
+7. `POST /api/v1/organizations/invitations/accept`
    - Body: `InvitationAcceptRequest { token }`
    - 200: `MemberResponse`
 
-6. `PATCH /api/v1/organizations/{organization_id}/members/{member_id}`
+8. `PATCH /api/v1/organizations/{organization_id}/members/{member_id}`
    - Body: `MemberUpdateRequest { role, cabinet_ids }`
    - 200: `MemberResponse`
 
-7. `DELETE /api/v1/organizations/{organization_id}/members/{member_id}`
+9. `DELETE /api/v1/organizations/{organization_id}/members/{member_id}`
    - 204
 
 ### 8) Marketplaces и синк (`/api/v1`)

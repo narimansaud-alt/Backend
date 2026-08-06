@@ -32,6 +32,7 @@ export interface ApiErrorResponse {
 
 export interface AccessTokenResponse { access_token: string; }
 export interface UserResponse { id: number; username: string; email: string; }
+export interface UserAdminResponse { id: number; username: string; email: string; is_active: boolean; is_verified: boolean; roles: Array<{ name: string; description?: string | null }>; permissions: Array<{ name: string }>; }
 export interface OrganizationResponse { id: UUID; name: string; owner_user_id: number; is_active: boolean; }
 export interface MemberResponse { id: UUID; organization_id: UUID; user_id: number; role: OrganizationRole; is_active: boolean; username?: string | null; email?: string | null; cabinet_ids: UUID[]; }
 export interface InvitationResponse { id: UUID; email: string; role: OrganizationRole; status: string; expires_at: string; invite_token?: string | null; }

@@ -31,6 +31,8 @@ describe("permissions", () => {
       .map((item) => item.href);
     expect(ownerTabs).toContain("/management/team");
     expect(ownerTabs).toContain("/management/cabinets");
+    expect(ownerTabs).toContain("/management/organizations");
+    expect(ownerTabs).toContain("/management/invitations");
   });
 });
 

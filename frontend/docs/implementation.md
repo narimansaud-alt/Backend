@@ -41,6 +41,22 @@ Backend не поддерживает frontend-only dimensions `brand_ids`, `cat
 - export: `POST /exports` → polling `GET /exports/{id}`;
 - observability: `POST /observability/client-errors` с обязательным `organization_id`.
 
+Административный контур:
+
+- `/dashboard` — рабочая главная аналитики;
+- `/management/organizations` — список, создание, переименование,
+  активация и безопасная деактивация организаций;
+- `/management/cabinets` — Wildberries, Ozon, Яндекс Маркет, проверка и
+  ротация credentials, запуск синхронизации;
+- `/management/users` — список системных учётных записей из backend;
+- `/management/invitations` — создание одноразовой ссылки приглашения;
+- `/management/team` — роли и cabinet scope участников;
+- `/management/sync` — очередь и retry синхронизаций.
+
+Все эти страницы остаются под middleware и backend RBAC. Если backend не
+предоставляет endpoint или право, UI показывает forbidden/error state и не
+подставляет локальные demo-данные.
+
 Если backend не вернул поле, frontend показывает empty/partial state и не подставляет demo-значения.
 
 ## Проверка

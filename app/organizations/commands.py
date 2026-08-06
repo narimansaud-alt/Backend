@@ -64,6 +64,58 @@ class CreateOrganizationHandler(BaseCommandHandler[CreateOrganizationCommand, Or
 
 
 @dataclass(frozen=True)
+class UpdateOrganizationCommand(BaseCommand):
+    user: UserJWTData
+    organization_id: UUID
+    name: str | None
+    is_active: bool | None
+
+
+@dataclass(frozen=True)
+class UpdateOrganizationHandler(BaseCommandHandler[UpdateOrganizationCommand, OrganizationResponse]):
+    session: AsyncSession
+    scope_service: OrganizationScopeService
+
+    async def handle(self, command: UpdateOrganizationCommand) -> OrganizationResponse:
+        try:
+            await self.scope_service.require(int(command.user.id), command.organization_id, "organization:manage")
+        except PermissionError as exc:
+            raise OrganizationForbiddenError(permission="organization:manage") from exc
+        organization = await self.session.get(Organization, command.organization_id)
+        if organization is None:
+            raise OrganizationNotFoundError
+        if command.name is not None:
+            organization.name = command.name.strip()
+        if command.is_active is not None:
+            organization.is_active = command.is_active
+        await self.session.commit()
+        return OrganizationResponse.model_validate(organization)
+
+
+@dataclass(frozen=True)
+class DeleteOrganizationCommand(BaseCommand):
+    user: UserJWTData
+    organization_id: UUID
+
+
+@dataclass(frozen=True)
+class DeleteOrganizationHandler(BaseCommandHandler[DeleteOrganizationCommand, None]):
+    session: AsyncSession
+    scope_service: OrganizationScopeService
+
+    async def handle(self, command: DeleteOrganizationCommand) -> None:
+        try:
+            await self.scope_service.require(int(command.user.id), command.organization_id, "organization:manage")
+        except PermissionError as exc:
+            raise OrganizationForbiddenError(permission="organization:manage") from exc
+        organization = await self.session.get(Organization, command.organization_id)
+        if organization is None:
+            raise OrganizationNotFoundError
+        organization.is_active = False
+        await self.session.commit()
+
+
+@dataclass(frozen=True)
 class InviteMemberCommand(BaseCommand):
     user: UserJWTData
     organization_id: UUID

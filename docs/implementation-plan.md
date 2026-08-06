@@ -38,3 +38,18 @@ share the application container.
 5. 400/401/403 are terminal or paused outcomes; 429, timeouts, and 5xx are
    bounded retries honoring `Retry-After`.
 
+## Admin surface added in this iteration
+
+- `GET/POST/PATCH/DELETE /api/v1/organizations` now supports the organization
+  list, creation, rename, activation and safe deactivation. Delete is a
+  reversible business deactivation: data and credentials are retained, while
+  access is closed by the backend permission boundary.
+- The Next.js workspace exposes `/management/organizations`,
+  `/management/cabinets`, `/management/users`, `/management/invitations`,
+  `/management/team` and `/management/sync` from the dark-green operational
+  sidebar.
+- Team management uses the existing member PATCH/DELETE endpoints for role and
+  cabinet-scope changes, and never stores marketplace credentials in browser
+  state. Credential rotation remains a backend validation-then-encrypt flow.
+- `/api/auth/logout` invalidates the backend refresh token when available and
+  always clears the local HttpOnly cookies.

@@ -21,6 +21,9 @@ const routeConfigs: Record<string, RouteConfig> = {
   "/finance/transactions": { title: "Финансовые операции", description: "Операции с привязкой к кабинету и маркетплейсу.", endpoint: "/api/v1/finance/transactions" },
   "/finance/expenses": { title: "Расходы", description: "Операционные расходы выбранной организации.", endpoint: "/api/v1/expenses" },
   "/management/cabinets": { title: "Кабинеты", description: "Подключения маркетплейсов и scopes credentials.", endpoint: "/api/v1/cabinets" },
+  "/management/organizations": { title: "Организации", description: "Рабочие пространства, владельцы и участники.", endpoint: "/api/v1/organizations" },
+  "/management/users": { title: "Пользователи", description: "Учётные записи и системные роли пользователей.", endpoint: "/api/v1/users/" },
+  "/management/invitations": { title: "Инвайты", description: "Приглашения пользователей в рабочие организации.", endpoint: "/api/v1/organizations/{organization_id}/invitations" },
   "/management/team": { title: "Команда", description: "Участники организации и их роли.", endpoint: "/api/v1/organizations/{organization_id}/members" },
   "/management/taxes": { title: "Налоги", description: "Ставки налогов организации.", endpoint: "/api/v1/tax-rates" },
   "/management/product-groups": { title: "Группы товаров", description: "Группы товаров выбранной организации.", endpoint: "/api/v1/product-groups" },
@@ -70,6 +73,9 @@ export async function getOperationalPage(path: string, query = ""): Promise<Oper
     }
     if (path === "/management/cabinets") {
       const payload = await serverApiRequest<PageResult<CabinetResponse>>("/api/v1/cabinets?page=1&page_size=100"); const view = base(path); view.status = "fresh"; view.columns = [{ key: "name", label: "Название", format: "text" }, { key: "marketplace", label: "Маркетплейс", format: "text" }, { key: "external_id", label: "Внешний ID", format: "text" }, { key: "is_active", label: "Активен", format: "status" }, { key: "credential_scopes", label: "Scopes", format: "text" }, { key: "credential_validated_at", label: "Ключ проверен", format: "text" }]; view.rows = payload.items.map((item) => ({ name: item.name, marketplace: item.marketplace, external_id: item.external_id, is_active: item.is_active ? "активен" : "неактивен", credential_scopes: item.credential_scopes.join(", "), credential_validated_at: item.credential_validated_at ?? null })); return { data: view };
+    }
+    if (["/management/organizations", "/management/users", "/management/invitations"].includes(path)) {
+      const view = base(path); view.status = "fresh"; return { data: view };
     }
     if (path === "/management/team") {
       const organizationId = await organizationQuery(query); const payload = await serverApiRequest<PageResult<import("./api/generated").MemberResponse>>(`/api/v1/organizations/${organizationId}/members?page=1&page_size=100`); const view = base(path); view.status = "fresh"; view.columns = [{ key: "user_id", label: "Пользователь", format: "text" }, { key: "role", label: "Роль", format: "text" }, { key: "is_active", label: "Активен", format: "status" }]; view.rows = payload.items.map((item) => ({ user_id: item.user_id, role: item.role, is_active: item.is_active ? "активен" : "неактивен" })); return { data: view };
