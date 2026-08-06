@@ -16,6 +16,9 @@ class AppConfig(BaseConfig):
         "POSTGRES_DB",
         "REDIS_HOST",
         "BROKER_URL",
+        "INITIAL_ADMIN_EMAIL",
+        "INITIAL_ADMIN_USERNAME",
+        "INITIAL_ADMIN_PASSWORD",
     )
 
     ENVIRONMENT: Literal["local", "production", "testing"] = "local"
@@ -102,6 +105,11 @@ class AppConfig(BaseConfig):
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
 
+    INITIAL_ADMIN_EMAIL: str = ""
+    INITIAL_ADMIN_USERNAME: str = ""
+    INITIAL_ADMIN_PASSWORD: str = ""
+    INITIAL_ORGANIZATION_NAME: str = "Основная организация"
+
     @model_validator(mode="after")
     def validate_production_required_settings(self) -> AppConfig:
         if self.ENVIRONMENT != "production":
@@ -113,6 +121,8 @@ class AppConfig(BaseConfig):
         if missing_fields:
             fields = ", ".join(missing_fields)
             raise ValueError(f"Missing required production settings: {fields}")
+        if self.INITIAL_ADMIN_PASSWORD == "ChangeMe123!":  # noqa: S105
+            raise ValueError("INITIAL_ADMIN_PASSWORD must be changed before production startup")
 
         return self
 

@@ -850,7 +850,7 @@ def setup_middleware(app: FastAPI) -> None:
 ### Startup Sequence
 
 1. **Pre-start** (`pre_start.py`) — проверка подключения к БД с retry (tenacity).
-2. **Init data** (`init_data.py`) — создание базовых ролей (`super_admin`, `system_admin`, `user`).
+2. **Init data** (`init_data.py`) — создание базовых ролей (`super_admin`, `system_admin`, `user`), начального `super_admin`, основной организации и membership `owner` из `INITIAL_ADMIN_*`.
 3. **FastAPILimiter** — инициализация Redis-клиента для rate limiting.
 4. **Message Broker** — запуск Kafka producer/consumer.
 

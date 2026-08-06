@@ -30,16 +30,22 @@ POSTGRES_SERVER=db
 POSTGRES_PORT=5432
 REDIS_HOST=redis
 STORAGE_HOST=minio
+INITIAL_ADMIN_EMAIL=owner@example.com
+INITIAL_ADMIN_USERNAME=owner
+INITIAL_ADMIN_PASSWORD=replace-with-a-strong-unique-password
+INITIAL_ORGANIZATION_NAME="Основная организация"
 ```
 
-Also set all required secrets and infrastructure credentials from `.env.example`, especially `SECRET_KEY`, `JWT_SECRET_KEY`, `POSTGRES_*`, and `BROKER_URL`.
+Also set all required secrets and infrastructure credentials from `.env.example`, especially `SECRET_KEY`, `JWT_SECRET_KEY`, `POSTGRES_*`, and `BROKER_URL`. The initial password must contain uppercase and lowercase letters, a digit, and a special character. The backend refuses to start in production with the example password.
 
-Start the application and run migrations:
+Run migrations first, then start the application:
 
 ```bash
-docker compose --profile api --profile storage --profile kafka -f docker-compose.yaml -f docker-compose.proxmox.yml up -d --build
 docker compose --profile migrations -f docker-compose.yaml -f docker-compose.proxmox.yml run --rm migrations
+docker compose --profile api --profile storage --profile kafka -f docker-compose.yaml -f docker-compose.proxmox.yml up -d --build
 ```
+
+On the first API startup the backend creates this verified `super_admin`, an organization, and an `owner` membership. Later restarts are idempotent and do not reset the password.
 
 The VM must allow TCP 3000 and 8000 from the NPM LXC address. Do not forward these ports directly from the router to the VM; forward 80/443 to NPM only.
 

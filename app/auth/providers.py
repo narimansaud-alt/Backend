@@ -1,5 +1,4 @@
 from dishka import Provider, Scope, alias, decorate, provide
-from passlib.context import CryptContext  # type: ignore[import-untyped]
 from redis.asyncio import Redis
 
 from app.auth.commands.auth.auth_url import CreateOAuthAuthorizeUrlCommand, CreateOAuthAuthorizeUrlCommandHandler
@@ -53,7 +52,7 @@ from app.auth.repositories.role import RoleInvalidateRepository, RoleRepository
 from app.auth.repositories.session import SessionRepository, TokenBlacklistRepository
 from app.auth.repositories.user import UserRepository
 from app.auth.services.cookie_manager import IRefreshTokenCookieManager, RefreshTokenCookieManager
-from app.auth.services.hash import HashService
+from app.auth.services.hash import HashService, create_hash_service
 from app.auth.services.jwt import AuthJWTManager
 from app.auth.services.oauth_manager import OAuthManager, OAuthProviderFactory
 from app.auth.services.oauth_providers import OAuthGithub, OAuthGoogle, OAuthYandex
@@ -101,7 +100,7 @@ class AuthModuleProvider(Provider):
 
     @provide(scope=Scope.APP)
     def hash_service(self) -> HashService:
-        return HashService(CryptContext(schemes=["argon2"], deprecated="auto"))
+        return create_hash_service()
 
     jwt_manager = provide(AuthJWTManager, scope=Scope.APP)
 

@@ -17,6 +17,7 @@ from starlette.middleware.gzip import GZipMiddleware
 
 from app.analytics.routes import router as analytics_router
 from app.auth.routers import router_v1 as auth_router_v1
+from app.auth.services.hash import HashService
 from app.catalog.routes import router as catalog_router
 from app.core.api.builder import create_response
 from app.core.api.schemas import ErrorDetail, ErrorResponse, ORJSONResponse
@@ -43,8 +44,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Starting FastAPI")
     async with app.state.dishka_container() as request_container:
         session = await request_container.get(AsyncSession)
+        hash_service = await request_container.get(HashService)
         await pre_start(session)
-        await init_data(session)
+        await init_data(session, hash_service)
 
     redis_client = await app.state.dishka_container.get(redis.Redis)
     await FastAPILimiter.init(redis_client)

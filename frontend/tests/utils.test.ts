@@ -5,6 +5,7 @@ import type { FilterState } from "../utils/filters";
 import { can } from "../utils/permissions";
 import { sanitizeText } from "../utils/error-sanitizer";
 import { apiRequest, ApiError } from "../utils/api/client";
+import { managementTabs } from "../utils/navigation";
 
 describe("formatters", () => {
   it("форматирует денежную строку без преобразования в Number", () => expect(formatMoney("9874200.00")).toBe("9 874 200 ₽"));
@@ -24,6 +25,13 @@ describe("URL filters", () => {
 describe("permissions", () => {
   it("не даёт viewer изменять финансы", () => expect(can("viewer", "finance:manage")).toBe(false));
   it("даёт owner управлять командой", () => expect(can("owner", "team:manage")).toBe(true));
+  it("показывает владельцу вкладки команды и кабинетов", () => {
+    const ownerTabs = managementTabs
+      .filter((item) => !item.permission || can("owner", item.permission))
+      .map((item) => item.href);
+    expect(ownerTabs).toContain("/management/team");
+    expect(ownerTabs).toContain("/management/cabinets");
+  });
 });
 
 describe("error sanitization", () => {
