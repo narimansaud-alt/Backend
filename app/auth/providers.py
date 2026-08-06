@@ -96,7 +96,7 @@ class AuthModuleProvider(Provider):
         if app_config.ENVIRONMENT != "production":
             return RefreshTokenCookieManager(SAMESITE="none", HTTPONLY=False, SECURE=False)
 
-        return RefreshTokenCookieManager(SAMESITE="strict", HTTPONLY=True, SECURE=True)
+        return RefreshTokenCookieManager(SAMESITE="none", HTTPONLY=False, SECURE=False)
 
     @provide(scope=Scope.APP)
     def hash_service(self) -> HashService:
